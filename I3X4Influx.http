@@ -1,0 +1,115 @@
+# Interactive request file for testing the running adapter from Visual Studio.
+#
+# 1. Start the app with the "Container (Dockerfile)" launch profile (F5).
+# 2. Visual Studio publishes a random host port. Set @port below to the mapped port, which is shown in
+#    the Containers window (Ports tab) or in the address bar when the Swagger UI opens.
+# 3. Click "Send request" above any request below.
+#
+# @auth is the base64 of "<username>:<password>" and must match I3X_BASIC_AUTH_USERNAME /
+# I3X_BASIC_AUTH_PASSWORD in Properties/launchSettings.json. To regenerate it after changing the
+# credentials, run in PowerShell:
+#   [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("i3x:changeit"))
+
+@host = http://localhost
+@port = 8080
+@baseUrl = {{host}}:{{port}}/v1
+
+# base64 of "i3x:changeit"
+@auth = aTN4OmNoYW5nZWl0
+
+### Health / capabilities - the only endpoint that does not require authentication.
+GET {{baseUrl}}/info
+Accept: application/json
+
+### Unauthenticated data request - expected to fail with 401 and a WWW-Authenticate challenge.
+GET {{baseUrl}}/objects
+Accept: application/json
+
+### Namespaces discovered from the InfluxDB metadata measurement.
+GET {{baseUrl}}/namespaces
+Accept: application/json
+Authorization: Basic {{auth}}
+
+### Root objects of the ISA-95 hierarchy.
+GET {{baseUrl}}/objects?root=true
+Accept: application/json
+Authorization: Basic {{auth}}
+
+### All objects, including their metadata.
+GET {{baseUrl}}/objects?includeMetadata=true
+Accept: application/json
+Authorization: Basic {{auth}}
+
+### Object types (one per distinct OPC UA data type per namespace).
+GET {{baseUrl}}/objecttypes
+Accept: application/json
+Authorization: Basic {{auth}}
+
+### Relationship types (static, well-known OPC UA reference types).
+GET {{baseUrl}}/relationshiptypes
+Accept: application/json
+Authorization: Basic {{auth}}
+
+### Verify gzip is honored, as the i3X spec requires.
+GET {{baseUrl}}/objects
+Accept: application/json
+Accept-Encoding: gzip
+Authorization: Basic {{auth}}
+
+### Children of an object. Replace the elementId with one returned by /objects.
+POST {{baseUrl}}/objects/related
+Content-Type: application/json
+Authorization: Basic {{auth}}
+
+{
+  "elementIds": ["<elementId>"],
+  "relationshipType": "HasComponent"
+}
+
+### Current value of one or more objects. Replace the elementIds with real ones.
+POST {{baseUrl}}/objects/value
+Content-Type: application/json
+Authorization: Basic {{auth}}
+
+{
+  "elementIds": ["<subject>::<variableName>"]
+}
+
+### Historical values. startTime and endTime are mandatory RFC 3339 timestamps.
+POST {{baseUrl}}/objects/history
+Content-Type: application/json
+Authorization: Basic {{auth}}
+
+{
+  "elementIds": ["<subject>::<variableName>"],
+  "startTime": "2024-01-01T00:00:00Z",
+  "endTime": "2034-01-01T00:00:00Z"
+}
+
+### Create a subscription; returns the subscriptionId used by the calls below.
+POST {{baseUrl}}/subscriptions
+Content-Type: application/json
+Authorization: Basic {{auth}}
+
+{}
+
+### Register elements on a subscription. Replace <subscriptionId> with the id returned above.
+POST {{baseUrl}}/subscriptions/<subscriptionId>/register
+Content-Type: application/json
+Authorization: Basic {{auth}}
+
+{
+  "elementIds": ["<subject>::<variableName>"]
+}
+
+### Poll for changes since the last sync.
+POST {{baseUrl}}/subscriptions/<subscriptionId>/sync
+Content-Type: application/json
+Authorization: Basic {{auth}}
+
+{}
+
+### Server-sent events stream of changes.
+GET {{baseUrl}}/subscriptions/<subscriptionId>/stream
+Accept: text/event-stream
+Authorization: Basic {{auth}}

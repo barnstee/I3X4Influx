@@ -1,0 +1,24 @@
+{
+  "profiles": {
+		"Container (Dockerfile)": {
+			"commandName": "Docker",
+			"launchBrowser": true,
+			"launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}/swagger",
+			"environmentVariables": {
+			"ASPNETCORE_ENVIRONMENT": "Development",
+			"ASPNETCORE_URLS": "https://+:8081;http://+:8080",
+			"INFLUX_URL": "http://192.168.178.148:8086",
+			"INFLUX_ORG": "iot",
+			"INFLUX_BUCKET": "mqtt",
+			"INFLUX_MEASUREMENT": "opcua_pubsub",
+			"INFLUX_METADATA_MEASUREMENT": "opcua_metadata",
+			"INFLUX_TOKEN": "",
+			"I3X_BASIC_AUTH_USERNAME": "myUsername",
+			"I3X_BASIC_AUTH_PASSWORD": ""
+			},
+			"publishAllPorts": true,
+			"useSSL": true
+		}
+  },
+  "$schema": "https://json.schemastore.org/launchsettings.json"
+}
