@@ -510,8 +510,11 @@ namespace I3X4Influx.Controllers
             new(TypeNamespaceUri: string.IsNullOrEmpty(namespaceUri) ? null : namespaceUri,
                 SourceTypeId: string.IsNullOrEmpty(sourceTypeId) ? null : sourceTypeId);
 
+        // i3X requires RFC 3339 UTC timestamps terminated by "Z", formatted culture-invariantly so a host
+        // with a non-Gregorian calendar or different digits cannot render an unparsable value.
         private static string ToRfc3339(DateTime dt) =>
-            DateTime.SpecifyKind(dt, DateTimeKind.Utc).ToString("yyyy-MM-ddTHH:mm:ss.fffffffK");
+            DateTime.SpecifyKind(dt, DateTimeKind.Utc)
+                .ToString("yyyy-MM-ddTHH:mm:ss.fffffff'Z'", System.Globalization.CultureInfo.InvariantCulture);
 
         private static string Str(Dictionary<string, object> row, string key) =>
             row.TryGetValue(key, out var v) ? v?.ToString() ?? "" : "";

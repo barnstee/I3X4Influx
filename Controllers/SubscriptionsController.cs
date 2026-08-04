@@ -449,8 +449,12 @@ namespace I3X4Influx.Controllers
                 ResponseDetail = new ErrorDetail("Not Found", 404, "Subscription not found")
             };
 
+        // i3X requires RFC 3339 UTC timestamps terminated by "Z". DateTimeOffset's round-trip ("o") format
+        // renders the zero offset as "+00:00" instead, which the conformance suite rejects, so the UTC
+        // designator is appended explicitly.
         private static string ToRfc3339(DateTime dt) =>
-            new DateTimeOffset(dt, TimeSpan.Zero).ToString("o");
+            DateTime.SpecifyKind(dt, DateTimeKind.Utc)
+                .ToString("yyyy-MM-ddTHH:mm:ss.fffffff'Z'", System.Globalization.CultureInfo.InvariantCulture);
 
         private static string Str(Dictionary<string, object> row, string key) =>
             row.TryGetValue(key, out var v) ? v?.ToString() ?? string.Empty : string.Empty;
