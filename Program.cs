@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -103,7 +104,29 @@ namespace I3X4Influx
                 });
             });
 
+            // When this server runs behind a TLS-terminating reverse proxy, the proxy
+            // forwards the request over plain HTTP and records the original scheme and
+            // client IP in X-Forwarded-Proto / X-Forwarded-For. Honouring them keeps
+            // Request.Scheme and Request.Host accurate, so any absolute URL this server
+            // generates (Swagger's server list, for example) uses https rather than
+            // silently downgrading the caller.
+            //
+            // KnownNetworks/KnownProxies are cleared because the proxy's address is not
+            // known ahead of time. That is safe only where this server is reachable
+            // exclusively through the proxy; expose it directly and a caller could spoof
+            // these headers.
+            builder.Services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+                options.KnownIPNetworks.Clear();
+                options.KnownProxies.Clear();
+            });
+
             var app = builder.Build();
+
+            // Must run before anything that reads the request scheme, including
+            // UseHttpsRedirection below.
+            app.UseForwardedHeaders();
 
             // Response compression must run early so downstream endpoint output is compressed.
             app.UseResponseCompression();
